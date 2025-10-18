@@ -23,7 +23,7 @@ def add_text(image, text, font_path, bubble_contour):
     x, y, w, h = cv2.boundingRect(bubble_contour)
 
     # Constants for text sizing
-    TARGET_FILL_RATIO = 0.8  # Text should fill 80% of bubble height
+    TARGET_FILL_RATIO = 0.65  # Text should fill 65% of bubble height
     MIN_FONT_SIZE = 12  # Minimum readable font size
     MAX_FONT_SIZE = 60  # Maximum font size to prevent overly large text
     MIN_FONT_SIZE_THRESHOLD = 8  # Absolute minimum before giving up adjustment
