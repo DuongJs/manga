@@ -1,5 +1,5 @@
 from add_text import add_text
-from detect_bubbles import detect_bubbles
+from detect_bubbles import detect_bubbles, detect_bubbles_batch
 from process_bubble import process_bubble
 from translator import MangaTranslator
 from ultralytics import YOLO
@@ -24,6 +24,25 @@ DESCRIPTION = "Translate text in manga bubbles! Supports batch processing of mul
 
 # Initialize API key manager
 api_key_manager = APIKeyManager()
+
+# Global model caches for reuse
+_manga_ocr_cache = None
+_paddle_ocr_cache = {}
+
+def get_manga_ocr():
+    """Get or initialize cached MangaOcr instance."""
+    global _manga_ocr_cache
+    if _manga_ocr_cache is None:
+        _manga_ocr_cache = MangaOcr()
+    return _manga_ocr_cache
+
+def get_paddle_ocr(lang='japan', use_textline_orientation=True, device='cpu'):
+    """Get or initialize cached PaddleOCR instance."""
+    global _paddle_ocr_cache
+    cache_key = f"{lang}_{use_textline_orientation}_{device}"
+    if cache_key not in _paddle_ocr_cache:
+        _paddle_ocr_cache[cache_key] = PaddleOCRWrapper(lang=lang, use_textline_orientation=use_textline_orientation, device=device)
+    return _paddle_ocr_cache[cache_key]
 
 # Dropdown options
 TRANSLATION_METHODS = [
@@ -90,9 +109,9 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
     
     # Initialize OCR based on selected method (not used for Gemini which has built-in OCR)
     if ocr_method == "paddleocr":
-        ocr = PaddleOCRWrapper(lang='japan', use_textline_orientation=True, device='cpu')
+        ocr = get_paddle_ocr(lang='japan', use_textline_orientation=True, device='cpu')
     else:
-        ocr = MangaOcr()
+        ocr = get_manga_ocr()
 
     image = np.array(img)
 
@@ -217,9 +236,11 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
         except ValueError as e:
             raise gr.Error(f"Gemini initialization error: {str(e)}")
         
-        for img in imgs:
-            # Detect bubbles
-            bubble_results = detect_bubbles(MODEL, img, conf_threshold=conf_threshold, iou_threshold=iou_threshold)
+        # Use batch bubble detection for all images
+        batch_bubble_results = detect_bubbles_batch(MODEL, imgs, conf_threshold=conf_threshold, iou_threshold=iou_threshold)
+        
+        for idx, img in enumerate(imgs):
+            bubble_results = batch_bubble_results[idx]
             
             if not bubble_results:
                 results.append(img)

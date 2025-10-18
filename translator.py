@@ -1,8 +1,6 @@
 from deep_translator import GoogleTranslator
 from transformers import pipeline
 import translators as ts
-import random
-import time
 from gemini_translator import GeminiTranslator
 
 
@@ -59,7 +57,6 @@ class MangaTranslator:
             raise ValueError("Invalid translation method.")
             
     def _translate_with_google(self, text):
-        self._delay()
         translator = GoogleTranslator(source=self.source, target=self.target)
         translated_text = translator.translate(text)
         return translated_text if translated_text is not None else text
@@ -70,14 +67,12 @@ class MangaTranslator:
         return translated_text if translated_text is not None else text
 
     def _translate_with_sogou(self, text):
-        self._delay()
         translated_text = ts.translate_text(text, translator="sogou",
                                             from_language=self.source,
                                             to_language=self.target)
         return translated_text if translated_text is not None else text
 
     def _translate_with_bing(self, text):
-        self._delay()
         translated_text = ts.translate_text(text, translator="bing",
                                             from_language=self.source, 
                                             to_language=self.target)
@@ -116,6 +111,3 @@ class MangaTranslator:
     def _preprocess_text(self, text):
         preprocessed_text = text.replace("．", ".")
         return preprocessed_text
-
-    def _delay(self):
-        time.sleep(random.randint(3, 5))

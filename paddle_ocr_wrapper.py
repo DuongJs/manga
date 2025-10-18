@@ -4,6 +4,10 @@ import numpy as np
 import cv2
 
 
+# Global OCR cache to avoid reinitializing
+_ocr_cache = {}
+
+
 class PaddleOCRWrapper:
     """
     Wrapper class for PaddleOCR to provide OCR functionality for manga translation.
@@ -19,11 +23,16 @@ class PaddleOCRWrapper:
             use_textline_orientation (bool): Whether to use textline orientation to handle rotated text.
             device (str): Device to use for processing. Default is 'cpu' for CPU-based processing.
         """
-        self.ocr = PaddleOCR(
-            use_textline_orientation=use_textline_orientation,
-            lang=lang,
-            device=device
-        )
+        # Use cache key to avoid reinitializing the same OCR configuration
+        cache_key = f"{lang}_{use_textline_orientation}_{device}"
+        if cache_key not in _ocr_cache:
+            _ocr_cache[cache_key] = PaddleOCR(
+                use_textline_orientation=use_textline_orientation,
+                lang=lang,
+                device=device,
+                show_log=False
+            )
+        self.ocr = _ocr_cache[cache_key]
     
     def __call__(self, image):
         """
