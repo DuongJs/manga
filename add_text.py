@@ -23,12 +23,12 @@ def add_text(image, text, font_path, bubble_contour):
     x, y, w, h = cv2.boundingRect(bubble_contour)
 
     # Constants for text sizing
-    TARGET_FILL_RATIO = 0.65  # Text should fill 65% of bubble height
-    MIN_FONT_SIZE = 12  # Minimum readable font size
-    MAX_FONT_SIZE = 60  # Maximum font size to prevent overly large text
+    TARGET_FILL_RATIO = 0.40  # Text should fill 40% of bubble height (reduced from 0.65)
+    MIN_FONT_SIZE = 10  # Minimum readable font size (reduced from 12)
+    MAX_FONT_SIZE = 40  # Maximum font size to prevent overly large text (reduced from 60)
     MIN_FONT_SIZE_THRESHOLD = 8  # Absolute minimum before giving up adjustment
-    LINE_HEIGHT_MULTIPLIER = 1.2  # Line height as proportion of font size
-    CHARS_PER_WIDTH_UNIT = 10  # Approximate characters per 10 pixels of width
+    LINE_HEIGHT_MULTIPLIER = 1.1  # Line height as proportion of font size (reduced from 1.2 for tighter spacing)
+    CHARS_PER_WIDTH_UNIT = 8  # Approximate characters per 10 pixels of width (decreased for fewer lines)
     
     target_height = h * TARGET_FILL_RATIO
     
@@ -39,7 +39,7 @@ def add_text(image, text, font_path, bubble_contour):
     font_size = max(MIN_FONT_SIZE, min(font_size, MAX_FONT_SIZE))
     
     line_height = int(font_size * LINE_HEIGHT_MULTIPLIER)
-    wrapping_ratio = 0.075
+    wrapping_ratio = 0.055  # Decreased from 0.075 to wrap later (fewer, longer lines)
 
     wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), 
                                  break_long_words=True)
