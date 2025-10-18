@@ -29,8 +29,7 @@ class PaddleOCRWrapper:
             _ocr_cache[cache_key] = PaddleOCR(
                 use_textline_orientation=use_textline_orientation,
                 lang=lang,
-                device=device,
-                show_log=False
+                device=device
             )
         self.ocr = _ocr_cache[cache_key]
     
