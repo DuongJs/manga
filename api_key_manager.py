@@ -31,11 +31,18 @@ class APIKeyManager:
                     data = json.load(f)
                     self.api_keys = data.get('api_keys', [])
                     self.current_index = data.get('current_index', 0)
+                print(f"Loaded {len(self.api_keys)} API key(s) from {self.config_file}")
+            except json.JSONDecodeError as e:
+                print(f"Error: {self.config_file} contains invalid JSON: {e}")
+                print(f"Please check the file format. See api_keys.json.example for the correct format.")
+                self.api_keys = []
+                self.current_index = 0
             except Exception as e:
-                print(f"Error loading API keys: {e}")
+                print(f"Error loading API keys from {self.config_file}: {e}")
                 self.api_keys = []
                 self.current_index = 0
         else:
+            print(f"No API key file found at {self.config_file}. API keys can be added via the web interface.")
             self.api_keys = []
             self.current_index = 0
     
@@ -103,6 +110,7 @@ class APIKeyManager:
         """
         with self.lock:
             if not self.api_keys:
+                print("No API keys available in the manager. Please add keys via the web interface or environment variable.")
                 return None
             
             # Get current key
