@@ -77,15 +77,23 @@ class APIKeyManager:
         """
         with self.lock:
             if api_key and api_key not in [k['key'] for k in self.api_keys]:
+                key_name = name or f"Key {len(self.api_keys) + 1}"
                 self.api_keys.append({
                     'key': api_key,
-                    'name': name or f"Key {len(self.api_keys) + 1}",
+                    'name': key_name,
                     'added_at': datetime.now().isoformat(),
                     'usage_count': 0
                 })
                 self.save_keys()  # This will raise an exception if save fails
+                print(f"✓ API key '{key_name}' added successfully (key starts with: {api_key[:10]}...)")
+                print(f"  Total keys in manager: {len(self.api_keys)}")
                 return True
-            return False
+            elif api_key in [k['key'] for k in self.api_keys]:
+                print(f"✗ API key already exists in manager")
+                return False
+            else:
+                print(f"✗ Cannot add empty API key")
+                return False
     
     def remove_key(self, index):
         """

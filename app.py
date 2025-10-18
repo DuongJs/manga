@@ -62,9 +62,18 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
         
         if not gemini_api_key:
             # Try to get from API key manager
+            print("No API key provided in form, trying API key manager...")
             gemini_api_key = api_key_manager.get_next_key()
-            if not gemini_api_key:
+            if gemini_api_key:
+                print(f"✓ Retrieved API key from manager (key starts with: {gemini_api_key[:10]}...)")
+            else:
+                print("✗ No API key available in manager, trying environment variable...")
                 gemini_api_key = os.getenv('GEMINI_API_KEY')
+                if gemini_api_key:
+                    print("✓ Retrieved API key from environment variable")
+        else:
+            print(f"Using API key provided in form (key starts with: {gemini_api_key[:10]}...)")
+        
         if not gemini_api_key:
             raise gr.Error("Gemini API key is required. Please enter an API key or add one in the API Key Management tab.")
 
@@ -183,9 +192,17 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
         
         # Get API key
         if not gemini_api_key:
+            print("Batch: No API key provided in form, trying API key manager...")
             gemini_api_key = api_key_manager.get_next_key()
-            if not gemini_api_key:
+            if gemini_api_key:
+                print(f"Batch: ✓ Retrieved API key from manager (key starts with: {gemini_api_key[:10]}...)")
+            else:
+                print("Batch: ✗ No API key available in manager, trying environment variable...")
                 gemini_api_key = os.getenv('GEMINI_API_KEY')
+                if gemini_api_key:
+                    print("Batch: ✓ Retrieved API key from environment variable")
+        else:
+            print(f"Batch: Using API key provided in form (key starts with: {gemini_api_key[:10]}...)")
         
         if not gemini_api_key:
             raise gr.Error("Gemini API key is required. Please enter an API key or add one in the API Key Management tab.")
