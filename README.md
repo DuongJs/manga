@@ -53,12 +53,11 @@ PaddleOCR is an open-source OCR tool built on PaddlePaddle deep learning framewo
 
 ### Configuration
 
-PaddleOCR is configured with the following settings for optimal CPU performance:
+PaddleOCR is configured with the following default settings for optimal CPU performance:
 
-- `use_gpu=False`: CPU-only processing
-- `use_angle_cls=True`: Handles rotated text
+- `device='cpu'`: CPU-only processing
+- `use_textline_orientation=True`: Handles rotated text detection and correction
 - `lang='japan'`: Optimized for Japanese text recognition
-- `show_log=False`: Minimal logging for cleaner output
 
 ### Performance Tips
 
