@@ -62,15 +62,18 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
             if not gemini_api_key:
                 gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not gemini_api_key:
-            return Image.fromarray(np.array(img))  # Return original image if no API key
+            raise gr.Error("Gemini API key is required. Please enter an API key or add one in the API Key Management tab.")
 
     results = detect_bubbles(MODEL, img, conf_threshold=conf_threshold, iou_threshold=iou_threshold)
 
-    manga_translator = MangaTranslator(gemini_api_key=gemini_api_key)
-    
-    # Set custom prompt if provided
-    if custom_prompt and translation_method == "gemini":
-        manga_translator.set_custom_prompt(custom_prompt)
+    try:
+        manga_translator = MangaTranslator(gemini_api_key=gemini_api_key)
+        
+        # Set custom prompt if provided
+        if custom_prompt and translation_method == "gemini":
+            manga_translator.set_custom_prompt(custom_prompt)
+    except ValueError as e:
+        raise gr.Error(f"Translation setup error: {str(e)}")
     
     # Initialize OCR based on selected method (not used for Gemini which has built-in OCR)
     if ocr_method == "paddleocr":
@@ -87,12 +90,15 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
 
         im = Image.fromarray(np.uint8((detected_image)*255))
         
-        # For Gemini, we skip separate OCR and pass the image directly
-        if translation_method == "gemini":
-            text_translated = manga_translator.translate("", method=translation_method, image=im)
-        else:
-            text = ocr(im)
-            text_translated = manga_translator.translate(text, method=translation_method)
+        try:
+            # For Gemini, we skip separate OCR and pass the image directly
+            if translation_method == "gemini":
+                text_translated = manga_translator.translate("", method=translation_method, image=im)
+            else:
+                text = ocr(im)
+                text_translated = manga_translator.translate(text, method=translation_method)
+        except ValueError as e:
+            raise gr.Error(f"Translation error: {str(e)}")
 
         detected_image, cont = process_bubble(detected_image)
 
@@ -127,8 +133,13 @@ def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=Non
     
     results = []
     for img in imgs:
-        result = predict(img, translation_method, font, ocr_method, gemini_api_key, custom_prompt, conf_threshold, iou_threshold)
-        results.append(result)
+        try:
+            result = predict(img, translation_method, font, ocr_method, gemini_api_key, custom_prompt, conf_threshold, iou_threshold)
+            results.append(result)
+        except Exception as e:
+            # For batch processing, log error but continue with other images
+            print(f"Error processing image: {str(e)}")
+            raise gr.Error(f"Error processing image: {str(e)}")
     
     return results
 
@@ -169,15 +180,17 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
                 gemini_api_key = os.getenv('GEMINI_API_KEY')
         
         if not gemini_api_key:
-            # Fallback to normal processing
-            return [predict(img, translation_method, font, ocr_method, gemini_api_key, custom_prompt, conf_threshold, iou_threshold) for img in imgs]
+            raise gr.Error("Gemini API key is required. Please enter an API key or add one in the API Key Management tab.")
         
         # Process with batch optimization
         results = []
-        from gemini_translator import GeminiTranslator
-        gemini_translator = GeminiTranslator(api_key=gemini_api_key)
-        if custom_prompt:
-            gemini_translator.set_custom_prompt(custom_prompt)
+        try:
+            from gemini_translator import GeminiTranslator
+            gemini_translator = GeminiTranslator(api_key=gemini_api_key)
+            if custom_prompt:
+                gemini_translator.set_custom_prompt(custom_prompt)
+        except ValueError as e:
+            raise gr.Error(f"Gemini initialization error: {str(e)}")
         
         for img in imgs:
             # Detect bubbles
@@ -200,10 +213,13 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
                 bubble_coords.append((int(y1), int(y2), int(x1), int(x2)))
             
             # Batch translate all bubbles in this image
-            if bubble_images:
-                translations = gemini_translator.batch_ocr_and_translate(bubble_images, custom_prompt=custom_prompt)
-            else:
-                translations = []
+            try:
+                if bubble_images:
+                    translations = gemini_translator.batch_ocr_and_translate(bubble_images, custom_prompt=custom_prompt)
+                else:
+                    translations = []
+            except ValueError as e:
+                raise gr.Error(f"Translation error: {str(e)}")
             
             # Apply translations back to image
             for i, result in enumerate(bubble_results):
@@ -221,8 +237,12 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
         # Use normal processing for non-Gemini methods
         results = []
         for img in imgs:
-            result = predict(img, translation_method, font, ocr_method, gemini_api_key, custom_prompt, conf_threshold, iou_threshold)
-            results.append(result)
+            try:
+                result = predict(img, translation_method, font, ocr_method, gemini_api_key, custom_prompt, conf_threshold, iou_threshold)
+                results.append(result)
+            except Exception as e:
+                print(f"Error processing image: {str(e)}")
+                raise gr.Error(f"Error processing image: {str(e)}")
         return results
 
 

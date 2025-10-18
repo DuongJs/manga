@@ -22,6 +22,12 @@ class GeminiTranslator:
         if not self.api_key:
             raise ValueError("Gemini API key is required. Set GEMINI_API_KEY environment variable or pass api_key parameter.")
         
+        # Validate API key format - basic validation
+        if not isinstance(self.api_key, str) or len(self.api_key.strip()) == 0:
+            raise ValueError("Invalid API key format. API key must be a non-empty string.")
+        
+        self.api_key = self.api_key.strip()
+        
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
         self.target_lang = "vi"
         self.source_lang = "ja"
@@ -142,11 +148,27 @@ class GeminiTranslator:
             
             return ""
             
-        except requests.exceptions.RequestException as e:
-            print(f"Error calling Gemini API: {e}")
+        except requests.exceptions.HTTPError as e:
+            # Handle HTTP errors specifically
+            error_msg = f"Gemini API Error: {e}"
             if hasattr(e, 'response') and e.response is not None:
-                print(f"Response: {e.response.text}")
-            return ""
+                try:
+                    error_data = e.response.json()
+                    if 'error' in error_data:
+                        error_info = error_data['error']
+                        if 'message' in error_info:
+                            error_msg = f"Gemini API Error: {error_info['message']}"
+                            # Provide specific guidance for common errors
+                            if 'API_KEY_INVALID' in str(error_info):
+                                error_msg = "Invalid Gemini API key. Please provide a valid API key from https://makersuite.google.com/app/apikey"
+                except:
+                    error_msg = f"Gemini API Error: {e.response.text}"
+            print(error_msg)
+            raise ValueError(error_msg)
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Network error calling Gemini API: {e}"
+            print(error_msg)
+            raise ValueError(error_msg)
     
     def batch_ocr_and_translate(self, images, target_lang=None, custom_prompt=None):
         """
@@ -244,17 +266,32 @@ class GeminiTranslator:
             print("Batch processing failed, falling back to individual processing")
             results = []
             for image in images:
-                translated = self.ocr_and_translate(image, target_lang, custom_prompt)
-                results.append(translated)
+                try:
+                    translated = self.ocr_and_translate(image, target_lang, custom_prompt)
+                    results.append(translated)
+                except ValueError as e:
+                    # If individual processing also fails, propagate the error
+                    raise e
             return results
             
-        except requests.exceptions.RequestException as e:
-            print(f"Error calling Gemini API for batch: {e}")
+        except requests.exceptions.HTTPError as e:
+            # Handle HTTP errors specifically
+            error_msg = f"Gemini API Error: {e}"
             if hasattr(e, 'response') and e.response is not None:
-                print(f"Response: {e.response.text}")
-            # Fallback to individual processing
-            results = []
-            for image in images:
-                translated = self.ocr_and_translate(image, target_lang, custom_prompt)
-                results.append(translated)
-            return results
+                try:
+                    error_data = e.response.json()
+                    if 'error' in error_data:
+                        error_info = error_data['error']
+                        if 'message' in error_info:
+                            error_msg = f"Gemini API Error: {error_info['message']}"
+                            # Provide specific guidance for common errors
+                            if 'API_KEY_INVALID' in str(error_info):
+                                error_msg = "Invalid Gemini API key. Please provide a valid API key from https://makersuite.google.com/app/apikey"
+                except:
+                    error_msg = f"Gemini API Error: {e.response.text}"
+            print(error_msg)
+            raise ValueError(error_msg)
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Network error calling Gemini API: {e}"
+            print(error_msg)
+            raise ValueError(error_msg)
