@@ -10,3 +10,5 @@ sentencepiece==0.2.0
 torch==2.5.0
 paddlepaddle
 paddleocr
+requests>=2.31.0
+gradio>=5.0.0
