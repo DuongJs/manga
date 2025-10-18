@@ -10,20 +10,19 @@ class PaddleOCRWrapper:
     This wrapper uses CPU-based processing following PaddleOCR best practices.
     """
     
-    def __init__(self, lang='japan', use_angle_cls=True, use_gpu=False):
+    def __init__(self, lang='japan', use_textline_orientation=True, device='cpu'):
         """
         Initialize PaddleOCR with specified configuration.
         
         Args:
             lang (str): Language code for OCR. Default is 'japan' for Japanese manga.
-            use_angle_cls (bool): Whether to use angle classification to handle rotated text.
-            use_gpu (bool): Whether to use GPU. Default is False for CPU-based processing.
+            use_textline_orientation (bool): Whether to use textline orientation to handle rotated text.
+            device (str): Device to use for processing. Default is 'cpu' for CPU-based processing.
         """
         self.ocr = PaddleOCR(
-            use_angle_cls=use_angle_cls,
+            use_textline_orientation=use_textline_orientation,
             lang=lang,
-            use_gpu=use_gpu,
-            show_log=False
+            device=device
         )
     
     def __call__(self, image):
