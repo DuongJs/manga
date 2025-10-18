@@ -106,6 +106,22 @@ The application includes a built-in API Key Manager that:
 - Tracks usage statistics for each key
 - Allows adding/removing keys through the web interface
 
+To manually create the `api_keys.json` file, use the following format (see `api_keys.json.example`):
+```json
+{
+  "api_keys": [
+    {
+      "key": "YOUR_GEMINI_API_KEY_HERE",
+      "name": "Primary Key",
+      "added_at": "2024-10-18T00:00:00.000000",
+      "usage_count": 0
+    }
+  ],
+  "current_index": 0,
+  "last_updated": "2024-10-18T00:00:00.000000"
+}
+```
+
 ### Custom Prompts
 
 Custom prompts allow you to control the translation style:

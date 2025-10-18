@@ -20,11 +20,20 @@ class GeminiTranslator:
         """
         self.api_key = api_key or os.getenv('GEMINI_API_KEY')
         if not self.api_key:
-            raise ValueError("Gemini API key is required. Set GEMINI_API_KEY environment variable or pass api_key parameter.")
+            raise ValueError(
+                "Gemini API key is required. Please:\n"
+                "1. Add API keys via the 'API Key Management' tab in the web interface, OR\n"
+                "2. Enter an API key in the 'Gemini API Key' field, OR\n"
+                "3. Set the GEMINI_API_KEY environment variable\n"
+                "Get your API key from: https://makersuite.google.com/app/apikey"
+            )
         
         # Validate API key format - basic validation
         if not isinstance(self.api_key, str) or len(self.api_key.strip()) == 0:
-            raise ValueError("Invalid API key format. API key must be a non-empty string.")
+            raise ValueError(
+                "Invalid API key format. API key must be a non-empty string.\n"
+                "Get a valid API key from: https://makersuite.google.com/app/apikey"
+            )
         
         self.api_key = self.api_key.strip()
         

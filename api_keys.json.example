@@ -1,0 +1,12 @@
+{
+  "api_keys": [
+    {
+      "key": "YOUR_GEMINI_API_KEY_HERE",
+      "name": "Primary Key",
+      "added_at": "2024-10-18T00:00:00.000000",
+      "usage_count": 0
+    }
+  ],
+  "current_index": 0,
+  "last_updated": "2024-10-18T00:00:00.000000"
+}
