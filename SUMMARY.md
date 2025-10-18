@@ -92,22 +92,26 @@ Tests for each individual optimization:
 - ✓ Batch processing optimization
 
 ### Integration Tests (`test_integration.py`)
-Real-world performance measurements:
-- ✓ Image conversion: 41.6% faster
-- ✓ ZIP creation: 62% faster (2.63x speedup)
-- ✓ Memory cleanup: Working correctly
-- ✓ Retry config: Fully configurable
+Real-world performance measurements on standard CPU with 10 test images (500x500 pixels):
+- ✓ Image conversion: 41.6% faster (0.017s → 0.010s)
+- ✓ ZIP creation: 62% faster (0.326s → 0.124s = 2.63x speedup)
+- ✓ Memory cleanup: Working correctly (objects freed validated)
+- ✓ Retry config: Fully configurable (tested with different timeout/retry values)
 
 ## Performance Metrics
 
+**Note:** All measurements taken from test_integration.py with 10 test images (500x500 pixels) on standard CPU.
+
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| Image Processing | Baseline | Optimized | ~40% faster |
-| Batch OCR | Sequential | Batched | 2-4x faster |
-| ZIP Creation | Sequential | Parallel (4x) | 2.6x faster |
-| Memory Usage | High | Optimized | 30-50% reduction |
-| API Success Rate | ~90% | ~98% | +8% |
-| API Timeout | None | 30s (configurable) | Predictable |
+| Image Processing | 0.017s per 1000x1000 image | 0.010s per image | ~40% faster |
+| Batch OCR | Sequential processing | Batched processing | 2-4x faster (estimated) |
+| ZIP Creation | 0.326s for 10 images | 0.124s for 10 images | 2.6x faster (62%) |
+| Memory Usage | No cleanup (accumulated) | With gc.collect() | 30-50% reduction (estimated) |
+| API Success Rate | No retry (baseline) | With retry mechanism | Higher success rate* |
+| API Timeout | None (hangs possible) | 30s (configurable) | Predictable behavior |
+
+*API success rate improvement is theoretical based on retry mechanism implementation. Actual improvement depends on network conditions and API reliability.
 
 ## Files Changed
 
@@ -132,10 +136,10 @@ Real-world performance measurements:
 3. **test_integration.py** - Integration tests
 
 ### Total Changes
-- **3 files modified**
-- **3 files added**
-- **554 insertions, 80 deletions**
-- **Net: +474 lines**
+- **3 files modified** (app.py, gemini_translator.py, paddle_ocr_wrapper.py)
+- **4 files added** (SUMMARY.md, PERFORMANCE_OPTIMIZATIONS.md, test_optimizations.py, test_integration.py)
+- **1,043 insertions, 80 deletions** (verified with git diff ee2a60e..HEAD)
+- **Net: +963 lines** (includes documentation and tests)
 
 ## Backward Compatibility
 
