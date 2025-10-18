@@ -14,6 +14,7 @@ import os
 import zipfile
 import io
 import gc
+import concurrent.futures
 from datetime import datetime
 
 
@@ -368,7 +369,7 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
 
 def download_all_images(images):
     """
-    Create a ZIP file containing all processed images.
+    Create a ZIP file containing all processed images with optimized parallel compression.
     
     Args:
         images: List of PIL Image objects
@@ -379,18 +380,27 @@ def download_all_images(images):
     if not images:
         return None
     
-    # Create ZIP file in memory
+    # Create ZIP file in memory with parallel image processing
     zip_buffer = io.BytesIO()
     
+    def save_image(idx, img):
+        """Helper function to save a single image to buffer."""
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='PNG')
+        return idx, img_buffer.getvalue()
+    
+    # Process images in parallel
+    image_data = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(images))) as executor:
+        futures = [executor.submit(save_image, i, img) for i, img in enumerate(images)]
+        for future in concurrent.futures.as_completed(futures):
+            idx, data = future.result()
+            image_data[idx] = data
+    
+    # Create ZIP file with pre-processed images
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for i, img in enumerate(images):
-            # Save image to buffer
-            img_buffer = io.BytesIO()
-            img.save(img_buffer, format='PNG')
-            img_buffer.seek(0)
-            
-            # Add to ZIP
-            zip_file.writestr(f'translated_manga_{i+1}.png', img_buffer.getvalue())
+        for i in range(len(images)):
+            zip_file.writestr(f'translated_manga_{i+1}.png', image_data[i])
     
     # Save ZIP to temporary file
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -398,6 +408,11 @@ def download_all_images(images):
     
     with open(zip_path, 'wb') as f:
         f.write(zip_buffer.getvalue())
+    
+    # Clean up
+    del zip_buffer
+    del image_data
+    gc.collect()
     
     return zip_path
 
