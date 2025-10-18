@@ -3,20 +3,24 @@ from transformers import pipeline
 import translators as ts
 import random
 import time
+from gemini_translator import GeminiTranslator
 
 
 class MangaTranslator:
-    def __init__(self):
+    def __init__(self, gemini_api_key=None):
         self.target = "en"
         self.source = "ja"
+        self.gemini_api_key = gemini_api_key
+        self.gemini_translator = None
         self.translators = {
             "google": self._translate_with_google,
             "hf": self._translate_with_hf,
             "sogou": self._translate_with_sogou,
-            "bing": self._translate_with_bing
+            "bing": self._translate_with_bing,
+            "gemini": self._translate_with_gemini
         }
 
-    def translate(self, text, method="google"):
+    def translate(self, text, method="google", image=None):
         """
         Translates the given text to the target language using the specified method.
 
@@ -26,6 +30,8 @@ class MangaTranslator:
                          "hf" for Helsinki-NLP's opus-mt-ja-en model (HF pipeline)
                          "sogou" for Sogou Translate
                          "bing" for Microsoft Bing Translator
+                         "gemini" for Google Gemini (requires image for OCR+translation)
+            image: PIL Image (required for gemini method)
 
         Returns:
             str: The translated text.
@@ -33,7 +39,10 @@ class MangaTranslator:
         translator_func = self.translators.get(method)
 
         if translator_func:
-            return translator_func(self._preprocess_text(text))
+            if method == "gemini":
+                return translator_func(image)
+            else:
+                return translator_func(self._preprocess_text(text))
         else:
             raise ValueError("Invalid translation method.")
             
@@ -61,6 +70,29 @@ class MangaTranslator:
                                             from_language=self.source, 
                                             to_language=self.target)
         return translated_text if translated_text is not None else text
+
+    def _translate_with_gemini(self, image):
+        """
+        Translate using Gemini API with OCR and translation in one call.
+        
+        Args:
+            image: PIL Image containing the text
+            
+        Returns:
+            str: Translated text
+        """
+        if image is None:
+            return ""
+        
+        # Initialize Gemini translator if not already done
+        if self.gemini_translator is None:
+            try:
+                self.gemini_translator = GeminiTranslator(api_key=self.gemini_api_key)
+            except ValueError as e:
+                print(f"Error initializing Gemini translator: {e}")
+                return ""
+        
+        return self.gemini_translator.ocr_and_translate(image, target_lang=self.target)
 
     def _preprocess_text(self, text):
         preprocessed_text = text.replace("．", ".")
