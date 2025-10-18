@@ -66,3 +66,48 @@ class PaddleOCRWrapper:
             return ' '.join(texts)
         
         return ""
+    
+    def batch_ocr(self, images):
+        """
+        Perform OCR on multiple images in batch.
+        
+        Args:
+            images: List of PIL Images or numpy arrays.
+            
+        Returns:
+            list: List of recognized texts from each image.
+        """
+        if not images:
+            return []
+        
+        # Convert all images to numpy arrays in the correct format
+        processed_images = []
+        for image in images:
+            # Convert PIL Image to numpy array if needed
+            if isinstance(image, Image.Image):
+                image = np.array(image)
+            
+            # Ensure image is in the correct format (BGR for PaddleOCR)
+            if len(image.shape) == 2:  # Grayscale
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            elif image.shape[2] == 4:  # RGBA
+                image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+            elif image.shape[2] == 3:  # RGB
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            
+            processed_images.append(image)
+        
+        # Perform batch OCR
+        results = self.ocr.ocr(processed_images, cls=True)
+        
+        # Extract text from each result
+        texts = []
+        for result in results:
+            if result and result[0]:
+                # Concatenate all detected text lines
+                text_lines = [line[1][0] for line in result[0]]
+                texts.append(' '.join(text_lines))
+            else:
+                texts.append("")
+        
+        return texts

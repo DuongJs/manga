@@ -13,6 +13,7 @@ import cv2
 import os
 import zipfile
 import io
+import gc
 from datetime import datetime
 
 
@@ -120,7 +121,8 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
 
         detected_image = image[int(y1):int(y2), int(x1):int(x2)]
 
-        im = Image.fromarray(np.uint8((detected_image)*255))
+        # Image is already in uint8 format [0-255], no need to multiply by 255
+        im = Image.fromarray(detected_image.astype(np.uint8))
         
         try:
             # For Gemini, we skip separate OCR and pass the image directly
@@ -136,7 +138,13 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
 
         image[int(y1):int(y2), int(x1):int(x2)] = add_text(detected_image, text_translated, font, cont)
 
-    return Image.fromarray(image)
+    result_image = Image.fromarray(image)
+    
+    # Clean up memory
+    del image
+    gc.collect()
+    
+    return result_image
 
 
 def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=None, custom_prompt=None, conf_threshold=0.5, iou_threshold=0.3):
@@ -178,7 +186,7 @@ def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=Non
 
 def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini_api_key=None, custom_prompt=None, conf_threshold=0.5, iou_threshold=0.3):
     """
-    Process multiple image files in batch with optimized Gemini batch processing.
+    Process multiple image files in batch with optimized batch processing for all methods.
     
     Args:
         file_paths: List of file paths or single file path
@@ -254,7 +262,8 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
             for result in bubble_results:
                 x1, y1, x2, y2, score, class_id = result
                 detected_image = image[int(y1):int(y2), int(x1):int(x2)]
-                im = Image.fromarray(np.uint8((detected_image)*255))
+                # Image is already in uint8 format [0-255], no need to multiply by 255
+                im = Image.fromarray(detected_image.astype(np.uint8))
                 bubble_images.append(im)
                 bubble_coords.append((int(y1), int(y2), int(x1), int(x2)))
             
@@ -277,18 +286,83 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
                 image[int(y1):int(y2), int(x1):int(x2)] = add_text(detected_image, text_translated, font, cont)
             
             results.append(Image.fromarray(image))
+            
+            # Clean up memory for each image
+            del image
+            gc.collect()
         
         return results
     else:
-        # Use normal processing for non-Gemini methods
+        # Optimized batch processing for non-Gemini methods
         results = []
-        for img in imgs:
+        
+        # Initialize translator and OCR
+        try:
+            manga_translator = MangaTranslator(gemini_api_key=gemini_api_key)
+            if custom_prompt:
+                manga_translator.set_custom_prompt(custom_prompt)
+        except ValueError as e:
+            raise gr.Error(f"Translation setup error: {str(e)}")
+        
+        if ocr_method == "paddleocr":
+            ocr = get_paddle_ocr(lang='japan', use_textline_orientation=True, device='cpu')
+            supports_batch = True
+        else:
+            ocr = get_manga_ocr()
+            supports_batch = False
+        
+        # Use batch bubble detection for all images
+        batch_bubble_results = detect_bubbles_batch(MODEL, imgs, conf_threshold=conf_threshold, iou_threshold=iou_threshold)
+        
+        for idx, img in enumerate(imgs):
+            bubble_results = batch_bubble_results[idx]
+            
+            if not bubble_results:
+                results.append(img)
+                continue
+            
+            # Extract all bubble images
+            image = np.array(img)
+            bubble_images = []
+            bubble_coords = []
+            
+            for result in bubble_results:
+                x1, y1, x2, y2, score, class_id = result
+                detected_image = image[int(y1):int(y2), int(x1):int(x2)]
+                im = Image.fromarray(detected_image.astype(np.uint8))
+                bubble_images.append(im)
+                bubble_coords.append((int(y1), int(y2), int(x1), int(x2)))
+            
+            # Batch OCR if supported, otherwise process individually
             try:
-                result = predict(img, translation_method, font, ocr_method, gemini_api_key, custom_prompt, conf_threshold, iou_threshold)
-                results.append(result)
+                if supports_batch and bubble_images:
+                    texts = ocr.batch_ocr(bubble_images)
+                    translations = [manga_translator.translate(text, method=translation_method) for text in texts]
+                else:
+                    translations = []
+                    for bubble_img in bubble_images:
+                        text = ocr(bubble_img)
+                        translation = manga_translator.translate(text, method=translation_method)
+                        translations.append(translation)
             except Exception as e:
                 print(f"Error processing image: {str(e)}")
-                raise gr.Error(f"Error processing image: {str(e)}")
+                raise gr.Error(f"Translation error: {str(e)}")
+            
+            # Apply translations back to image
+            for i, result in enumerate(bubble_results):
+                x1, y1, x2, y2, score, class_id = result
+                detected_image = image[int(y1):int(y2), int(x1):int(x2)]
+                text_translated = translations[i] if i < len(translations) else ""
+                
+                detected_image, cont = process_bubble(detected_image)
+                image[int(y1):int(y2), int(x1):int(x2)] = add_text(detected_image, text_translated, font, cont)
+            
+            results.append(Image.fromarray(image))
+            
+            # Clean up memory for each image
+            del image
+            gc.collect()
+        
         return results
 
 
