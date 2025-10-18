@@ -91,7 +91,7 @@ class MangaTranslator:
             image: PIL Image containing the text
             
         Returns:
-            str: Translated text
+            str: Translated text or error message
         """
         if image is None:
             return ""
@@ -103,10 +103,15 @@ class MangaTranslator:
                 if self.custom_prompt:
                     self.gemini_translator.set_custom_prompt(self.custom_prompt)
             except ValueError as e:
-                print(f"Error initializing Gemini translator: {e}")
-                return ""
+                error_msg = f"Gemini initialization error: {str(e)}"
+                print(error_msg)
+                raise ValueError(error_msg)
         
-        return self.gemini_translator.ocr_and_translate(image, target_lang=self.target, custom_prompt=self.custom_prompt)
+        try:
+            return self.gemini_translator.ocr_and_translate(image, target_lang=self.target, custom_prompt=self.custom_prompt)
+        except ValueError as e:
+            # Re-raise to propagate to UI
+            raise e
 
     def _preprocess_text(self, text):
         preprocessed_text = text.replace("．", ".")
