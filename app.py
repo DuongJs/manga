@@ -56,6 +56,10 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
 
     # Validate Gemini API key if Gemini is selected
     if translation_method == "gemini":
+        # Strip whitespace from API key if provided
+        if gemini_api_key:
+            gemini_api_key = gemini_api_key.strip()
+        
         if not gemini_api_key:
             # Try to get from API key manager
             gemini_api_key = api_key_manager.get_next_key()
@@ -173,6 +177,10 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
     
     # If using Gemini, we can optimize batch processing
     if translation_method == "gemini":
+        # Strip whitespace from API key if provided
+        if gemini_api_key:
+            gemini_api_key = gemini_api_key.strip()
+        
         # Get API key
         if not gemini_api_key:
             gemini_api_key = api_key_manager.get_next_key()
@@ -285,6 +293,15 @@ def download_all_images(images):
 # API Management functions
 def add_api_key(api_key, name):
     """Add a new API key to the manager."""
+    # Strip whitespace from API key and name
+    if api_key:
+        api_key = api_key.strip()
+    if name:
+        name = name.strip()
+    
+    if not api_key:
+        return "API key cannot be empty", get_api_keys_display()
+    
     if api_key_manager.add_key(api_key, name):
         return "API key added successfully!", get_api_keys_display()
     return "Failed to add API key (may already exist)", get_api_keys_display()
