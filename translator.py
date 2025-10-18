@@ -8,10 +8,11 @@ from gemini_translator import GeminiTranslator
 
 class MangaTranslator:
     def __init__(self, gemini_api_key=None):
-        self.target = "en"
+        self.target = "vi"
         self.source = "ja"
         self.gemini_api_key = gemini_api_key
         self.gemini_translator = None
+        self.custom_prompt = None
         self.translators = {
             "google": self._translate_with_google,
             "hf": self._translate_with_hf,
@@ -19,6 +20,17 @@ class MangaTranslator:
             "bing": self._translate_with_bing,
             "gemini": self._translate_with_gemini
         }
+
+    def set_custom_prompt(self, custom_prompt):
+        """
+        Set custom prompt for Gemini translation.
+        
+        Args:
+            custom_prompt (str): Custom prompt for translation style/context
+        """
+        self.custom_prompt = custom_prompt
+        if self.gemini_translator:
+            self.gemini_translator.set_custom_prompt(custom_prompt)
 
     def translate(self, text, method="google", image=None):
         """
@@ -88,11 +100,13 @@ class MangaTranslator:
         if self.gemini_translator is None:
             try:
                 self.gemini_translator = GeminiTranslator(api_key=self.gemini_api_key)
+                if self.custom_prompt:
+                    self.gemini_translator.set_custom_prompt(self.custom_prompt)
             except ValueError as e:
                 print(f"Error initializing Gemini translator: {e}")
                 return ""
         
-        return self.gemini_translator.ocr_and_translate(image, target_lang=self.target)
+        return self.gemini_translator.ocr_and_translate(image, target_lang=self.target, custom_prompt=self.custom_prompt)
 
     def _preprocess_text(self, text):
         preprocessed_text = text.replace("．", ".")
