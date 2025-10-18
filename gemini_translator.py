@@ -264,6 +264,19 @@ class GeminiTranslator:
         target = target_lang or self.target_lang
         prompt_modifier = custom_prompt or self.custom_prompt or ""
         
+        # For small batches (1-3 images), use individual processing to avoid parsing issues
+        if len(images) <= 3:
+            print(f"Processing {len(images)} images individually for better reliability")
+            results = []
+            for image in images:
+                try:
+                    translated = self.ocr_and_translate(image, target_lang, custom_prompt)
+                    results.append(translated)
+                except ValueError as e:
+                    print(f"Error translating image: {e}")
+                    results.append("")
+            return results
+        
         # Convert all images to base64
         images_base64 = [self._image_to_base64(img) for img in images]
         
@@ -323,25 +336,55 @@ class GeminiTranslator:
                     parts = candidate['content']['parts']
                     if len(parts) > 0 and 'text' in parts[0]:
                         translated_text = parts[0]['text'].strip()
+                        print(f"Batch API response length: {len(translated_text)} chars")
+                        
+                        # Ensure proper UTF-8 encoding
+                        if isinstance(translated_text, bytes):
+                            translated_text = translated_text.decode('utf-8', errors='replace')
+                        
                         # Split by separator
                         translations = [t.strip() for t in translated_text.split('|||')]
+                        print(f"Split into {len(translations)} translations for {len(images)} images")
+                        
+                        # Validate we got reasonable results
+                        if len(translations) < len(images) * 0.5:  # Got less than half expected
+                            print(f"Warning: Only got {len(translations)} translations for {len(images)} images, falling back to individual processing")
+                            raise ValueError("Insufficient translations from batch API")
+                        
                         # Ensure we have the right number of translations
                         while len(translations) < len(images):
                             translations.append("")
-                        return translations[:len(images)]
+                        
+                        # Clean up translations - remove any control characters or invalid UTF-8
+                        cleaned_translations = []
+                        for trans in translations[:len(images)]:
+                            # Remove control characters except newline and tab
+                            cleaned = ''.join(char for char in trans if char.isprintable() or char in '\n\t')
+                            cleaned_translations.append(cleaned)
+                        
+                        return cleaned_translations
             
             # Fallback to individual processing if batch fails
-            print("Batch processing failed, falling back to individual processing")
+            print("Batch processing failed (no valid response), falling back to individual processing")
             results = []
             for image in images:
                 try:
                     translated = self.ocr_and_translate(image, target_lang, custom_prompt)
                     results.append(translated)
                 except ValueError as e:
-                    # If individual processing also fails, propagate the error
-                    raise e
+                    print(f"Error translating image: {e}")
+                    results.append("")
             return results
             
         except ValueError as e:
-            # Re-raise to propagate to UI
-            raise e
+            # Fallback to individual processing on error
+            print(f"Batch processing error: {e}, falling back to individual processing")
+            results = []
+            for image in images:
+                try:
+                    translated = self.ocr_and_translate(image, target_lang, custom_prompt)
+                    results.append(translated)
+                except ValueError as inner_e:
+                    print(f"Error translating image: {inner_e}")
+                    results.append("")
+            return results
