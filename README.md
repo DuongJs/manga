@@ -28,10 +28,8 @@ A manga translation application that detects text bubbles, extracts text using O
   - **Gemini API**: Advanced translation with built-in OCR in a single API call
 - **Vietnamese Translation**: All translations default to Vietnamese (tiếng Việt)
 - **Text Rendering**: Automatically fits translated text into speech bubbles
-- **Batch Processing**: Process multiple images simultaneously with optimized API usage
 - **API Key Management**: Store and rotate multiple Gemini API keys automatically
 - **Custom Prompts**: Customize translation style and context for Gemini translations
-- **Download All**: Export all translated images as a ZIP file
 
 ## PaddleOCR Integration
 
@@ -75,7 +73,6 @@ The application now supports Google's Gemini API for advanced translation with b
 - **High Accuracy**: Leverages Gemini 2.5 Flash Lite model for superior text recognition and translation
 - **Fast Processing**: Uses optimized configuration with thinking budget set to 0 for faster responses
 - **No Separate OCR Required**: Gemini processes the image directly, eliminating the need for separate OCR step
-- **Batch Optimization**: Multiple images are processed in a single API call to reduce costs
 - **Custom Prompts**: Add custom instructions to control translation style and context
 - **API Key Rotation**: Automatically rotates through multiple API keys for high-volume usage
 
@@ -95,7 +92,7 @@ For detailed setup instructions, see [API_KEY_SETUP.md](API_KEY_SETUP.md)
 1. Select "Gemini (OCR + Translation)" from the Translation Method dropdown
 2. Enter your Gemini API key (if not using the API Key Manager)
 3. Optionally add a custom prompt (e.g., "Use casual Vietnamese style")
-4. Upload your manga image(s)
+4. Upload your manga image
 5. Adjust detection thresholds if needed
 6. Click Translate to process
 
@@ -134,11 +131,10 @@ Custom prompts allow you to control the translation style:
 ### How It Works
 
 The Gemini integration uses multimodal input capabilities to:
-1. Send the manga panel image(s) directly to Gemini API
+1. Send the manga panel image directly to Gemini API
 2. Gemini extracts Japanese text using its built-in OCR
 3. Gemini translates the extracted text to Vietnamese in the same API call
-4. For batch processing, multiple bubbles are sent in one request
-5. The translated text is rendered back into the speech bubbles
+4. The translated text is rendered back into the speech bubbles
 
 This approach is more efficient than traditional OCR + translation pipelines and often provides better results for manga text.
 
@@ -149,15 +145,6 @@ The Gemini translator is configured with:
 - `thinkingBudget: 0` - Disables extended thinking mode for faster responses
 - `temperature: 0.3` - Lower temperature for more consistent translations
 - System instruction optimized for manga translation to Vietnamese
-
-## Batch Processing
-
-The application supports processing multiple manga images at once:
-- Upload multiple images
-- All images will be processed with the same translation settings
-- For Gemini translation, multiple bubbles are processed in a single API call for efficiency
-- Results are returned as a list of translated images
-- Download all results as a ZIP file
 
 ## Bubble Detection
 
