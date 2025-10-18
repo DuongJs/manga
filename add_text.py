@@ -22,8 +22,23 @@ def add_text(image, text, font_path, bubble_contour):
 
     x, y, w, h = cv2.boundingRect(bubble_contour)
 
-    line_height = 16
-    font_size = 14
+    # Constants for text sizing
+    TARGET_FILL_RATIO = 0.8  # Text should fill 80% of bubble height
+    MIN_FONT_SIZE = 12  # Minimum readable font size
+    MAX_FONT_SIZE = 60  # Maximum font size to prevent overly large text
+    MIN_FONT_SIZE_THRESHOLD = 8  # Absolute minimum before giving up adjustment
+    LINE_HEIGHT_MULTIPLIER = 1.2  # Line height as proportion of font size
+    CHARS_PER_WIDTH_UNIT = 10  # Approximate characters per 10 pixels of width
+    
+    target_height = h * TARGET_FILL_RATIO
+    
+    # Start with larger initial font size based on bubble height
+    # Estimate number of lines based on text length and bubble width
+    estimated_lines = max(1, len(text) // max(1, int(w / CHARS_PER_WIDTH_UNIT)))
+    font_size = int(target_height / (estimated_lines * LINE_HEIGHT_MULTIPLIER))
+    font_size = max(MIN_FONT_SIZE, min(font_size, MAX_FONT_SIZE))
+    
+    line_height = int(font_size * LINE_HEIGHT_MULTIPLIER)
     wrapping_ratio = 0.075
 
     wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), 
@@ -34,9 +49,10 @@ def add_text(image, text, font_path, bubble_contour):
     lines = wrapped_text.split('\n')
     total_text_height = (len(lines)) * line_height
 
-    while total_text_height > h:
-        line_height -= 2
-        font_size -= 2
+    # Adjust down if text is too large
+    while total_text_height > h and font_size > MIN_FONT_SIZE_THRESHOLD:
+        font_size = max(MIN_FONT_SIZE_THRESHOLD, font_size - 2)
+        line_height = int(font_size * LINE_HEIGHT_MULTIPLIER)
         wrapping_ratio += 0.025
 
         wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), 
@@ -45,7 +61,7 @@ def add_text(image, text, font_path, bubble_contour):
         font = ImageFont.truetype(font_path, size=font_size)
 
         lines = wrapped_text.split('\n')
-        total_text_height = (len(lines)) * line_height                         
+        total_text_height = (len(lines)) * line_height
 
     # Vertical centering
     text_y = y + (h - total_text_height) // 2
