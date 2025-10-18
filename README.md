@@ -83,11 +83,13 @@ The application now supports Google's Gemini API for advanced translation with b
 ### Setup
 
 1. Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Add keys through the "API Key Management" tab in the web interface
-3. Or set the API key as an environment variable:
-   ```bash
-   export GEMINI_API_KEY='your-api-key-here'
-   ```
+2. Configure your API key using one of these methods:
+   - Add keys through the "API Key Management" tab in the web interface (recommended)
+   - Create an `api_keys.json` file (see `api_keys.json.example`)
+   - Set the `GEMINI_API_KEY` environment variable
+   - Enter the key directly in the UI when translating
+
+For detailed setup instructions, see [API_KEY_SETUP.md](API_KEY_SETUP.md)
 
 ### Usage
 
@@ -105,6 +107,22 @@ The application includes a built-in API Key Manager that:
 - Automatically rotates keys in round-robin fashion
 - Tracks usage statistics for each key
 - Allows adding/removing keys through the web interface
+
+To manually create the `api_keys.json` file, use the following format (see `api_keys.json.example`):
+```json
+{
+  "api_keys": [
+    {
+      "key": "YOUR_GEMINI_API_KEY_HERE",
+      "name": "Primary Key",
+      "added_at": "2024-10-18T00:00:00.000000",
+      "usage_count": 0
+    }
+  ],
+  "current_index": 0,
+  "last_updated": "2024-10-18T00:00:00.000000"
+}
+```
 
 ### Custom Prompts
 
