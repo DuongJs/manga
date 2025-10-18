@@ -1,6 +1,9 @@
 from ultralytics import YOLO
 import numpy as np
 
+# Global model cache
+_model_cache = {}
+
 def detect_bubbles(model_path, image_path, conf_threshold=0.5, iou_threshold=0.3):
     """
     Detects bubbles in an image using a YOLOv8 model with improved duplicate filtering.
@@ -13,43 +16,45 @@ def detect_bubbles(model_path, image_path, conf_threshold=0.5, iou_threshold=0.3
         list: A list containing the coordinates, score, and class_id of 
               the detected bubbles with duplicates removed.
     """
-    model = YOLO(model_path)
+    # Cache model globally to avoid reloading
+    if model_path not in _model_cache:
+        _model_cache[model_path] = YOLO(model_path)
+    model = _model_cache[model_path]
+    
     # Run inference with adjusted confidence and IoU thresholds
+    # YOLO already performs NMS internally with the iou parameter, so we don't need additional filtering
     bubbles = model(image_path, conf=conf_threshold, iou=iou_threshold)[0]
 
-    # Get detections
+    # Get detections - no additional NMS needed as YOLO handles it
     detections = bubbles.boxes.data.tolist()
     
-    # Additional filtering for overlapping boxes
-    filtered_detections = []
-    for det in detections:
-        x1, y1, x2, y2, score, class_id = det
-        
-        # Check if this detection overlaps significantly with any already added
-        is_duplicate = False
-        for existing in filtered_detections:
-            ex1, ey1, ex2, ey2, _, _ = existing
-            
-            # Calculate intersection over union (IoU)
-            inter_x1 = max(x1, ex1)
-            inter_y1 = max(y1, ey1)
-            inter_x2 = min(x2, ex2)
-            inter_y2 = min(y2, ey2)
-            
-            if inter_x1 < inter_x2 and inter_y1 < inter_y2:
-                inter_area = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
-                box1_area = (x2 - x1) * (y2 - y1)
-                box2_area = (ex2 - ex1) * (ey2 - ey1)
-                
-                # Calculate IoU
-                iou = inter_area / (box1_area + box2_area - inter_area)
-                
-                # If IoU is high, consider it a duplicate
-                if iou > iou_threshold:
-                    is_duplicate = True
-                    break
-        
-        if not is_duplicate:
-            filtered_detections.append(det)
+    return detections
+
+
+def detect_bubbles_batch(model_path, image_paths, conf_threshold=0.5, iou_threshold=0.3):
+    """
+    Detects bubbles in multiple images using a single YOLO batch inference call.
     
-    return filtered_detections
+    Args:
+        model_path (str): The file path to the YOLO model.
+        image_paths (list): List of image paths or PIL images.
+        conf_threshold (float): Confidence threshold for detections (default: 0.5)
+        iou_threshold (float): IoU threshold for non-maximum suppression (default: 0.3)
+    Returns:
+        list: A list of detection lists, one for each input image.
+    """
+    # Cache model globally to avoid reloading
+    if model_path not in _model_cache:
+        _model_cache[model_path] = YOLO(model_path)
+    model = _model_cache[model_path]
+    
+    # Run batch inference - YOLO can process multiple images at once
+    results = model(image_paths, conf=conf_threshold, iou=iou_threshold)
+    
+    # Extract detections for each image
+    batch_detections = []
+    for result in results:
+        detections = result.boxes.data.tolist()
+        batch_detections.append(detections)
+    
+    return batch_detections

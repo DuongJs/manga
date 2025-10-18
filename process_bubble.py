@@ -13,10 +13,20 @@ def process_bubble(image):
     - image (numpy.ndarray):  Image with the speech bubble content set to white.
     - largest_contour (numpy.ndarray): Contour of the detected speech bubble.
     """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Check if already grayscale to avoid unnecessary conversion
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
+    
     _, thresh = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY)
 
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not contours:
+        # Return image as-is if no contours found
+        return image, None
+    
     largest_contour = max(contours, key=cv2.contourArea)
 
     mask = np.zeros_like(gray)
