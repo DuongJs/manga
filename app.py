@@ -4,6 +4,7 @@ from process_bubble import process_bubble
 from translator import MangaTranslator
 from ultralytics import YOLO
 from manga_ocr import MangaOcr
+from paddle_ocr_wrapper import PaddleOCRWrapper
 from PIL import Image
 import gradio as gr
 import numpy as np
@@ -17,16 +18,23 @@ TITLE = "Manga Translator"
 DESCRIPTION = "Translate text in manga bubbles!"
 
 
-def predict(img, translation_method, font):
+def predict(img, translation_method, font, ocr_method):
     if translation_method == None:
         translation_method = "google"
     if font == None:
         font = "fonts/animeace_i.ttf"
+    if ocr_method == None:
+        ocr_method = "manga-ocr"
 
     results = detect_bubbles(MODEL, img)
 
     manga_translator = MangaTranslator()
-    mocr = MangaOcr()
+    
+    # Initialize OCR based on selected method
+    if ocr_method == "paddleocr":
+        ocr = PaddleOCRWrapper(lang='japan', use_angle_cls=True, use_gpu=False)
+    else:
+        ocr = MangaOcr()
 
     image = np.array(img)
 
@@ -36,7 +44,7 @@ def predict(img, translation_method, font):
         detected_image = image[int(y1):int(y2), int(x1):int(x2)]
 
         im = Image.fromarray(np.uint8((detected_image)*255))
-        text = mocr(im)
+        text = ocr(im)
 
         detected_image, cont = process_bubble(detected_image)
 
@@ -60,7 +68,11 @@ demo = gr.Interface(fn=predict,
                                          ("mangati", "fonts/mangati.ttf"),
                                          ("ariali", "fonts/ariali.ttf")],
                                         label="Text Font",
-                                        value="fonts/animeace_i.ttf")
+                                        value="fonts/animeace_i.ttf"),
+                            gr.Dropdown([("Manga OCR", "manga-ocr"),
+                                         ("PaddleOCR", "paddleocr")],
+                                        label="OCR Method",
+                                        value="manga-ocr")
                             ],
                     outputs=[gr.Image()],
                     examples=EXAMPLE_LIST,
