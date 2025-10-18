@@ -40,3 +40,6 @@ venv.bak/
 # OS
 .DS_Store
 Thumbs.db
+
+# API Keys
+api_keys.json
