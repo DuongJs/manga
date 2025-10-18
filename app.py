@@ -71,7 +71,7 @@ def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=Non
     Process multiple images in batch.
     
     Args:
-        imgs: List of images or single image
+        imgs: List of file paths or single file path
         translation_method: Translation method to use
         font: Font to use for text rendering
         ocr_method: OCR method to use
@@ -88,14 +88,16 @@ def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=Non
         imgs = [imgs]
     
     results = []
-    for img in imgs:
+    for img_path in imgs:
+        # Load image from file path
+        img = Image.open(img_path)
         result = predict(img, translation_method, font, ocr_method, gemini_api_key)
         results.append(result)
     
     return results
 
-demo = gr.Interface(fn=predict,
-                    inputs=["image",
+demo = gr.Interface(fn=predict_batch,
+                    inputs=[gr.File(label="Upload Images (single or multiple)", file_count="multiple", type="filepath"),
                             gr.Dropdown([("Google", "google"),
                                          ("Helsinki-NLP's opus-mt-ja-en model",
                                           "hf"),
@@ -117,7 +119,7 @@ demo = gr.Interface(fn=predict,
                                       type="password",
                                       placeholder="Enter your Gemini API key for Gemini translation")
                             ],
-                    outputs=[gr.Image()],
+                    outputs=[gr.Gallery(label="Translated Images")],
                     examples=EXAMPLE_LIST,
                     title=TITLE,
                     description=DESCRIPTION)
