@@ -71,7 +71,7 @@ def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=Non
     Process multiple images in batch.
     
     Args:
-        imgs: List of file paths or single file path
+        imgs: List of images or single image
         translation_method: Translation method to use
         font: Font to use for text rendering
         ocr_method: OCR method to use
@@ -88,41 +88,140 @@ def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=Non
         imgs = [imgs]
     
     results = []
-    for img_path in imgs:
-        # Load image from file path
-        img = Image.open(img_path)
+    for img in imgs:
         result = predict(img, translation_method, font, ocr_method, gemini_api_key)
         results.append(result)
     
     return results
 
-demo = gr.Interface(fn=predict_batch,
-                    inputs=[gr.File(label="Upload Images (single or multiple)", file_count="multiple", type="filepath"),
-                            gr.Dropdown([("Google", "google"),
-                                         ("Helsinki-NLP's opus-mt-ja-en model",
-                                          "hf"),
-                                         ("Sogou", "sogou"),
-                                         ("Bing", "bing"),
-                                         ("Gemini (OCR + Translation)", "gemini")],
-                                        label="Translation Method",
-                                        value="google"),
-                            gr.Dropdown([("animeace_i", "fonts/animeace_i.ttf"),
-                                         ("mangati", "fonts/mangati.ttf"),
-                                         ("ariali", "fonts/ariali.ttf")],
-                                        label="Text Font",
-                                        value="fonts/animeace_i.ttf"),
-                            gr.Dropdown([("Manga OCR", "manga-ocr"),
-                                         ("PaddleOCR", "paddleocr")],
-                                        label="OCR Method (not used for Gemini)",
-                                        value="manga-ocr"),
-                            gr.Textbox(label="Gemini API Key (optional, or set GEMINI_API_KEY env var)",
-                                      type="password",
-                                      placeholder="Enter your Gemini API key for Gemini translation")
-                            ],
-                    outputs=[gr.Gallery(label="Translated Images")],
-                    examples=EXAMPLE_LIST,
-                    title=TITLE,
-                    description=DESCRIPTION)
+
+def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini_api_key=None):
+    """
+    Process multiple image files in batch.
+    
+    Args:
+        file_paths: List of file paths or single file path
+        translation_method: Translation method to use
+        font: Font to use for text rendering
+        ocr_method: OCR method to use
+        gemini_api_key: Gemini API key (optional)
+        
+    Returns:
+        List of processed images
+    """
+    if file_paths is None:
+        return []
+    
+    # Handle single file path
+    if not isinstance(file_paths, list):
+        file_paths = [file_paths]
+    
+    results = []
+    for file_path in file_paths:
+        # Load image from file path
+        img = Image.open(file_path)
+        result = predict(img, translation_method, font, ocr_method, gemini_api_key)
+        results.append(result)
+    
+    return results
+
+
+with gr.Blocks(title=TITLE) as demo:
+    gr.Markdown(f"# {TITLE}")
+    gr.Markdown(DESCRIPTION)
+    
+    with gr.Tab("Single Image"):
+        with gr.Row():
+            with gr.Column():
+                single_image = gr.Image(label="Upload Image", type="pil")
+                single_translation_method = gr.Dropdown(
+                    [("Google", "google"),
+                     ("Helsinki-NLP's opus-mt-ja-en model", "hf"),
+                     ("Sogou", "sogou"),
+                     ("Bing", "bing"),
+                     ("Gemini (OCR + Translation)", "gemini")],
+                    label="Translation Method",
+                    value="google"
+                )
+                single_font = gr.Dropdown(
+                    [("animeace_i", "fonts/animeace_i.ttf"),
+                     ("mangati", "fonts/mangati.ttf"),
+                     ("ariali", "fonts/ariali.ttf")],
+                    label="Text Font",
+                    value="fonts/animeace_i.ttf"
+                )
+                single_ocr_method = gr.Dropdown(
+                    [("Manga OCR", "manga-ocr"),
+                     ("PaddleOCR", "paddleocr")],
+                    label="OCR Method (not used for Gemini)",
+                    value="manga-ocr"
+                )
+                single_api_key = gr.Textbox(
+                    label="Gemini API Key (optional, or set GEMINI_API_KEY env var)",
+                    type="password",
+                    placeholder="Enter your Gemini API key for Gemini translation"
+                )
+                single_button = gr.Button("Translate")
+            
+            with gr.Column():
+                single_output = gr.Image(label="Translated Image")
+        
+        gr.Examples(
+            examples=EXAMPLE_LIST,
+            inputs=[single_image]
+        )
+        
+        single_button.click(
+            fn=predict,
+            inputs=[single_image, single_translation_method, single_font, single_ocr_method, single_api_key],
+            outputs=single_output
+        )
+    
+    with gr.Tab("Batch Processing"):
+        with gr.Row():
+            with gr.Column():
+                batch_images = gr.File(
+                    label="Upload Images (multiple files)",
+                    file_count="multiple",
+                    type="filepath"
+                )
+                batch_translation_method = gr.Dropdown(
+                    [("Google", "google"),
+                     ("Helsinki-NLP's opus-mt-ja-en model", "hf"),
+                     ("Sogou", "sogou"),
+                     ("Bing", "bing"),
+                     ("Gemini (OCR + Translation)", "gemini")],
+                    label="Translation Method",
+                    value="google"
+                )
+                batch_font = gr.Dropdown(
+                    [("animeace_i", "fonts/animeace_i.ttf"),
+                     ("mangati", "fonts/mangati.ttf"),
+                     ("ariali", "fonts/ariali.ttf")],
+                    label="Text Font",
+                    value="fonts/animeace_i.ttf"
+                )
+                batch_ocr_method = gr.Dropdown(
+                    [("Manga OCR", "manga-ocr"),
+                     ("PaddleOCR", "paddleocr")],
+                    label="OCR Method (not used for Gemini)",
+                    value="manga-ocr"
+                )
+                batch_api_key = gr.Textbox(
+                    label="Gemini API Key (optional, or set GEMINI_API_KEY env var)",
+                    type="password",
+                    placeholder="Enter your Gemini API key for Gemini translation"
+                )
+                batch_button = gr.Button("Translate All")
+            
+            with gr.Column():
+                batch_output = gr.Gallery(label="Translated Images", columns=2)
+        
+        batch_button.click(
+            fn=predict_batch_files,
+            inputs=[batch_images, batch_translation_method, batch_font, batch_ocr_method, batch_api_key],
+            outputs=batch_output
+        )
 
 
 demo.launch(debug=False,
