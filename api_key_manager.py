@@ -47,17 +47,19 @@ class APIKeyManager:
             self.current_index = 0
     
     def save_keys(self):
-        """Save API keys to JSON file."""
-        try:
-            data = {
-                'api_keys': self.api_keys,
-                'current_index': self.current_index,
-                'last_updated': datetime.now().isoformat()
-            }
-            with open(self.config_file, 'w') as f:
-                json.dump(data, f, indent=2)
-        except Exception as e:
-            print(f"Error saving API keys: {e}")
+        """
+        Save API keys to JSON file.
+        
+        Raises:
+            Exception: If there's an error writing to the file
+        """
+        data = {
+            'api_keys': self.api_keys,
+            'current_index': self.current_index,
+            'last_updated': datetime.now().isoformat()
+        }
+        with open(self.config_file, 'w') as f:
+            json.dump(data, f, indent=2)
     
     def add_key(self, api_key, name=None):
         """
@@ -68,7 +70,10 @@ class APIKeyManager:
             name (str): Optional name/description for the key
             
         Returns:
-            bool: True if added successfully
+            bool: True if added successfully, False if key already exists or is empty
+            
+        Raises:
+            Exception: If there's an error saving the key to file
         """
         with self.lock:
             if api_key and api_key not in [k['key'] for k in self.api_keys]:
@@ -78,7 +83,7 @@ class APIKeyManager:
                     'added_at': datetime.now().isoformat(),
                     'usage_count': 0
                 })
-                self.save_keys()
+                self.save_keys()  # This will raise an exception if save fails
                 return True
             return False
     

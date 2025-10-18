@@ -302,9 +302,12 @@ def add_api_key(api_key, name):
     if not api_key:
         return "API key cannot be empty", get_api_keys_display()
     
-    if api_key_manager.add_key(api_key, name):
-        return "API key added successfully!", get_api_keys_display()
-    return "Failed to add API key (may already exist)", get_api_keys_display()
+    try:
+        if api_key_manager.add_key(api_key, name):
+            return "API key added successfully!", get_api_keys_display()
+        return "Failed to add API key (may already exist)", get_api_keys_display()
+    except Exception as e:
+        return f"Error saving API key: {str(e)}", get_api_keys_display()
 
 
 def remove_api_key(index):
@@ -314,8 +317,10 @@ def remove_api_key(index):
         if api_key_manager.remove_key(idx):
             return "API key removed successfully!", get_api_keys_display()
         return "Failed to remove API key (invalid index)", get_api_keys_display()
-    except:
-        return "Invalid index", get_api_keys_display()
+    except ValueError:
+        return "Invalid index format", get_api_keys_display()
+    except Exception as e:
+        return f"Error removing API key: {str(e)}", get_api_keys_display()
 
 
 def get_api_keys_display():
