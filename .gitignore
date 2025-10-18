@@ -43,7 +43,3 @@ Thumbs.db
 
 # API Keys
 api_keys.json
-
-# Test files
-test_optimizations.py
-test_integration.py
