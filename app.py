@@ -59,7 +59,7 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None):
     
     # Initialize OCR based on selected method (not used for Gemini which has built-in OCR)
     if ocr_method == "paddleocr":
-        ocr = PaddleOCRWrapper(lang='japan', use_angle_cls=True, use_gpu=False)
+        ocr = PaddleOCRWrapper(lang='japan', use_textline_orientation=True, device='cpu')
     else:
         ocr = MangaOcr()
 
