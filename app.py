@@ -56,11 +56,24 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None, cust
 
     # Validate Gemini API key if Gemini is selected
     if translation_method == "gemini":
+        # Strip whitespace from API key if provided
+        if gemini_api_key:
+            gemini_api_key = gemini_api_key.strip()
+        
         if not gemini_api_key:
             # Try to get from API key manager
+            print("No API key provided in form, trying API key manager...")
             gemini_api_key = api_key_manager.get_next_key()
-            if not gemini_api_key:
+            if gemini_api_key:
+                print(f"✓ Retrieved API key from manager (key starts with: {gemini_api_key[:10]}...)")
+            else:
+                print("✗ No API key available in manager, trying environment variable...")
                 gemini_api_key = os.getenv('GEMINI_API_KEY')
+                if gemini_api_key:
+                    print("✓ Retrieved API key from environment variable")
+        else:
+            print(f"Using API key provided in form (key starts with: {gemini_api_key[:10]}...)")
+        
         if not gemini_api_key:
             raise gr.Error("Gemini API key is required. Please enter an API key or add one in the API Key Management tab.")
 
@@ -173,11 +186,23 @@ def predict_batch_files(file_paths, translation_method, font, ocr_method, gemini
     
     # If using Gemini, we can optimize batch processing
     if translation_method == "gemini":
+        # Strip whitespace from API key if provided
+        if gemini_api_key:
+            gemini_api_key = gemini_api_key.strip()
+        
         # Get API key
         if not gemini_api_key:
+            print("Batch: No API key provided in form, trying API key manager...")
             gemini_api_key = api_key_manager.get_next_key()
-            if not gemini_api_key:
+            if gemini_api_key:
+                print(f"Batch: ✓ Retrieved API key from manager (key starts with: {gemini_api_key[:10]}...)")
+            else:
+                print("Batch: ✗ No API key available in manager, trying environment variable...")
                 gemini_api_key = os.getenv('GEMINI_API_KEY')
+                if gemini_api_key:
+                    print("Batch: ✓ Retrieved API key from environment variable")
+        else:
+            print(f"Batch: Using API key provided in form (key starts with: {gemini_api_key[:10]}...)")
         
         if not gemini_api_key:
             raise gr.Error("Gemini API key is required. Please enter an API key or add one in the API Key Management tab.")
@@ -285,9 +310,21 @@ def download_all_images(images):
 # API Management functions
 def add_api_key(api_key, name):
     """Add a new API key to the manager."""
-    if api_key_manager.add_key(api_key, name):
-        return "API key added successfully!", get_api_keys_display()
-    return "Failed to add API key (may already exist)", get_api_keys_display()
+    # Strip whitespace from API key and name
+    if api_key:
+        api_key = api_key.strip()
+    if name:
+        name = name.strip()
+    
+    if not api_key:
+        return "API key cannot be empty", get_api_keys_display()
+    
+    try:
+        if api_key_manager.add_key(api_key, name):
+            return "API key added successfully!", get_api_keys_display()
+        return "Failed to add API key (may already exist)", get_api_keys_display()
+    except Exception as e:
+        return f"Error saving API key: {str(e)}", get_api_keys_display()
 
 
 def remove_api_key(index):
@@ -297,8 +334,10 @@ def remove_api_key(index):
         if api_key_manager.remove_key(idx):
             return "API key removed successfully!", get_api_keys_display()
         return "Failed to remove API key (invalid index)", get_api_keys_display()
-    except:
-        return "Invalid index", get_api_keys_display()
+    except ValueError:
+        return "Invalid index format", get_api_keys_display()
+    except Exception as e:
+        return f"Error removing API key: {str(e)}", get_api_keys_display()
 
 
 def get_api_keys_display():
