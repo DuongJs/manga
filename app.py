@@ -18,6 +18,26 @@ EXAMPLE_LIST = [["examples/0.png"],
 TITLE = "Manga Translator"
 DESCRIPTION = "Translate text in manga bubbles! Supports batch processing of multiple images."
 
+# Dropdown options
+TRANSLATION_METHODS = [
+    ("Google", "google"),
+    ("Helsinki-NLP's opus-mt-ja-en model", "hf"),
+    ("Sogou", "sogou"),
+    ("Bing", "bing"),
+    ("Gemini (OCR + Translation)", "gemini")
+]
+
+FONTS = [
+    ("animeace_i", "fonts/animeace_i.ttf"),
+    ("mangati", "fonts/mangati.ttf"),
+    ("ariali", "fonts/ariali.ttf")
+]
+
+OCR_METHODS = [
+    ("Manga OCR", "manga-ocr"),
+    ("PaddleOCR", "paddleocr")
+]
+
 
 def predict(img, translation_method, font, ocr_method, gemini_api_key=None):
     if translation_method == None:
@@ -68,17 +88,17 @@ def predict(img, translation_method, font, ocr_method, gemini_api_key=None):
 
 def predict_batch(imgs, translation_method, font, ocr_method, gemini_api_key=None):
     """
-    Process multiple images in batch.
+    Process multiple PIL images in batch.
     
     Args:
-        imgs: List of images or single image
+        imgs: List of PIL Image objects or single PIL Image
         translation_method: Translation method to use
         font: Font to use for text rendering
         ocr_method: OCR method to use
         gemini_api_key: Gemini API key (optional)
         
     Returns:
-        List of processed images
+        List of processed PIL Image objects
     """
     if imgs is None:
         return []
@@ -135,24 +155,17 @@ with gr.Blocks(title=TITLE) as demo:
             with gr.Column():
                 single_image = gr.Image(label="Upload Image", type="pil")
                 single_translation_method = gr.Dropdown(
-                    [("Google", "google"),
-                     ("Helsinki-NLP's opus-mt-ja-en model", "hf"),
-                     ("Sogou", "sogou"),
-                     ("Bing", "bing"),
-                     ("Gemini (OCR + Translation)", "gemini")],
+                    TRANSLATION_METHODS,
                     label="Translation Method",
                     value="google"
                 )
                 single_font = gr.Dropdown(
-                    [("animeace_i", "fonts/animeace_i.ttf"),
-                     ("mangati", "fonts/mangati.ttf"),
-                     ("ariali", "fonts/ariali.ttf")],
+                    FONTS,
                     label="Text Font",
                     value="fonts/animeace_i.ttf"
                 )
                 single_ocr_method = gr.Dropdown(
-                    [("Manga OCR", "manga-ocr"),
-                     ("PaddleOCR", "paddleocr")],
+                    OCR_METHODS,
                     label="OCR Method (not used for Gemini)",
                     value="manga-ocr"
                 )
@@ -186,24 +199,17 @@ with gr.Blocks(title=TITLE) as demo:
                     type="filepath"
                 )
                 batch_translation_method = gr.Dropdown(
-                    [("Google", "google"),
-                     ("Helsinki-NLP's opus-mt-ja-en model", "hf"),
-                     ("Sogou", "sogou"),
-                     ("Bing", "bing"),
-                     ("Gemini (OCR + Translation)", "gemini")],
+                    TRANSLATION_METHODS,
                     label="Translation Method",
                     value="google"
                 )
                 batch_font = gr.Dropdown(
-                    [("animeace_i", "fonts/animeace_i.ttf"),
-                     ("mangati", "fonts/mangati.ttf"),
-                     ("ariali", "fonts/ariali.ttf")],
+                    FONTS,
                     label="Text Font",
                     value="fonts/animeace_i.ttf"
                 )
                 batch_ocr_method = gr.Dropdown(
-                    [("Manga OCR", "manga-ocr"),
-                     ("PaddleOCR", "paddleocr")],
+                    OCR_METHODS,
                     label="OCR Method (not used for Gemini)",
                     value="manga-ocr"
                 )
