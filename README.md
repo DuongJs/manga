@@ -32,7 +32,8 @@ A manga translation application that detects text bubbles, extracts text using O
 - **Custom Prompts**: Customize translation style and context for Gemini translations
 - **🆕 Batch Translation**: Translate multiple manga pages at once with optimized performance
   - Upload multiple images simultaneously
-  - **Gemini Batch API**: Process all bubbles in 1 API call (3-4x faster!)
+  - **Gemini Batch API Optimization**: Intelligent chunking processes ~20 images per API request
+  - Processes 100 images in just 5 API calls instead of 100 (20x efficiency!)
   - Real-time progress tracking
   - Download all results as ZIP
   - Comprehensive statistics
@@ -77,6 +78,8 @@ The application now supports Google's Gemini API for advanced translation with b
 ### Features of Gemini Translation
 
 - **Combined OCR + Translation**: Performs OCR and translation in a single API call using Gemini's multimodal capabilities
+- **Intelligent Batch Processing**: Automatically chunks large batches into optimal sizes (~20 images per API request)
+- **High Efficiency**: Process 100 images with only 5 API requests instead of 100 individual calls
 - **High Accuracy**: Leverages Gemini 2.5 Flash Lite model for superior text recognition and translation
 - **Fast Processing**: Uses optimized configuration with thinking budget set to 0 for faster responses
 - **No Separate OCR Required**: Gemini processes the image directly, eliminating the need for separate OCR step
