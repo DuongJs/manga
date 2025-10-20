@@ -24,7 +24,7 @@ def calculate_iou(box1, box2):
     x_right = min(x2_1, x2_2)
     y_bottom = min(y2_1, y2_2)
     
-    if x_right < x_left or y_bottom < y_top:
+    if x_right <= x_left or y_bottom <= y_top:
         return 0.0
     
     intersection_area = (x_right - x_left) * (y_bottom - y_top)
@@ -59,19 +59,20 @@ def remove_duplicate_detections(detections, iou_threshold=0.3):
     sorted_detections = sorted(detections, key=lambda x: x[4], reverse=True)
     
     keep = []
-    while sorted_detections:
-        # Keep the detection with highest confidence
-        current = sorted_detections.pop(0)
+    suppress = [False] * len(sorted_detections)
+    
+    for i, current in enumerate(sorted_detections):
+        if suppress[i]:
+            continue
+        
         keep.append(current)
         
-        # Remove detections that overlap significantly with current detection
-        filtered = []
-        for detection in sorted_detections:
-            iou = calculate_iou(current, detection)
-            if iou < iou_threshold:
-                filtered.append(detection)
-        
-        sorted_detections = filtered
+        # Mark overlapping detections for suppression
+        for j in range(i + 1, len(sorted_detections)):
+            if not suppress[j]:
+                iou = calculate_iou(current, sorted_detections[j])
+                if iou >= iou_threshold:
+                    suppress[j] = True
     
     return keep
 

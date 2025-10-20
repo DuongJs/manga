@@ -117,7 +117,7 @@ class GeminiTranslator:
                         raise ValueError(f"Gemini API Error: {error_msg}")
                     raise ValueError("Invalid API response: missing 'candidates' field")
                 
-                if not result['candidates'] or len(result['candidates']) == 0:
+                if not result['candidates']:
                     raise ValueError("Invalid API response: empty candidates list")
                 
                 return result
