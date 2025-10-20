@@ -17,6 +17,7 @@ class GeminiTranslator:
     DEFAULT_TIMEOUT = 30  # seconds
     MAX_RETRIES = 3
     RETRY_DELAY = 1  # seconds (will use exponential backoff)
+    BATCH_SIZE = 20  # Maximum number of images per API request for optimal performance
     
     def __init__(self, api_key=None, timeout=None, max_retries=None):
         """
@@ -246,14 +247,16 @@ class GeminiTranslator:
             # Re-raise to propagate to UI
             raise e
     
-    def batch_ocr_and_translate(self, images, target_lang=None, custom_prompt=None):
+    def batch_ocr_and_translate(self, images, target_lang=None, custom_prompt=None, batch_size=None):
         """
-        Process multiple images in a single batch API call for efficiency.
+        Process multiple images in batched API calls for optimal efficiency.
+        Automatically chunks images into batches of approximately 20 images per request.
         
         Args:
             images: List of PIL Images
             target_lang (str): Target language code (default: 'vi')
             custom_prompt (str): Optional custom prompt for translation style
+            batch_size (int): Number of images per API request (default: 20)
             
         Returns:
             list: List of translated texts corresponding to each image
@@ -263,10 +266,13 @@ class GeminiTranslator:
         
         target = target_lang or self.target_lang
         prompt_modifier = custom_prompt or self.custom_prompt or ""
+        chunk_size = batch_size or self.BATCH_SIZE
         
-        # For small batches (1-3 images), use individual processing to avoid parsing issues
-        if len(images) <= 3:
-            print(f"Processing {len(images)} images individually for better reliability")
+        total_images = len(images)
+        
+        # For very small batches (1-3 images), use individual processing to avoid parsing issues
+        if total_images <= 3:
+            print(f"Processing {total_images} images individually for better reliability")
             results = []
             for image in images:
                 try:
@@ -276,6 +282,41 @@ class GeminiTranslator:
                     print(f"Error translating image: {e}")
                     results.append("")
             return results
+        
+        # Process images in chunks for optimal performance
+        all_results = []
+        num_chunks = (total_images + chunk_size - 1) // chunk_size  # Ceiling division
+        
+        print(f"Processing {total_images} images in {num_chunks} batch(es) of up to {chunk_size} images each")
+        
+        for chunk_idx in range(num_chunks):
+            start_idx = chunk_idx * chunk_size
+            end_idx = min(start_idx + chunk_size, total_images)
+            chunk_images = images[start_idx:end_idx]
+            chunk_len = len(chunk_images)
+            
+            print(f"Processing batch {chunk_idx + 1}/{num_chunks}: images {start_idx + 1}-{end_idx} ({chunk_len} images)")
+            
+            # Process this chunk
+            chunk_results = self._process_single_batch(chunk_images, target, prompt_modifier)
+            all_results.extend(chunk_results)
+        
+        return all_results
+    
+    def _process_single_batch(self, images, target, prompt_modifier):
+        """
+        Process a single batch of images (internal method).
+        
+        Args:
+            images: List of PIL Images (should be <= BATCH_SIZE)
+            target: Target language
+            prompt_modifier: Custom prompt modifier
+            
+        Returns:
+            list: List of translated texts
+        """
+        if not images:
+            return []
         
         # Convert all images to base64
         images_base64 = [self._image_to_base64(img) for img in images]
@@ -336,7 +377,7 @@ class GeminiTranslator:
                     parts = candidate['content']['parts']
                     if len(parts) > 0 and 'text' in parts[0]:
                         translated_text = parts[0]['text'].strip()
-                        print(f"Batch API response length: {len(translated_text)} chars")
+                        print(f"  Batch API response length: {len(translated_text)} chars")
                         
                         # Ensure proper UTF-8 encoding
                         if isinstance(translated_text, bytes):
@@ -344,11 +385,11 @@ class GeminiTranslator:
                         
                         # Split by separator
                         translations = [t.strip() for t in translated_text.split('|||')]
-                        print(f"Split into {len(translations)} translations for {len(images)} images")
+                        print(f"  Split into {len(translations)} translations for {len(images)} images")
                         
                         # Validate we got reasonable results
                         if len(translations) < len(images) * 0.5:  # Got less than half expected
-                            print(f"Warning: Only got {len(translations)} translations for {len(images)} images, falling back to individual processing")
+                            print(f"  Warning: Only got {len(translations)} translations for {len(images)} images, falling back to individual processing")
                             raise ValueError("Insufficient translations from batch API")
                         
                         # Ensure we have the right number of translations
@@ -365,26 +406,26 @@ class GeminiTranslator:
                         return cleaned_translations
             
             # Fallback to individual processing if batch fails
-            print("Batch processing failed (no valid response), falling back to individual processing")
+            print("  Batch processing failed (no valid response), falling back to individual processing")
             results = []
             for image in images:
                 try:
-                    translated = self.ocr_and_translate(image, target_lang, custom_prompt)
+                    translated = self.ocr_and_translate(image)
                     results.append(translated)
                 except ValueError as e:
-                    print(f"Error translating image: {e}")
+                    print(f"  Error translating image: {e}")
                     results.append("")
             return results
             
         except ValueError as e:
             # Fallback to individual processing on error
-            print(f"Batch processing error: {e}, falling back to individual processing")
+            print(f"  Batch processing error: {e}, falling back to individual processing")
             results = []
             for image in images:
                 try:
-                    translated = self.ocr_and_translate(image, target_lang, custom_prompt)
+                    translated = self.ocr_and_translate(image)
                     results.append(translated)
                 except ValueError as inner_e:
-                    print(f"Error translating image: {inner_e}")
+                    print(f"  Error translating image: {inner_e}")
                     results.append("")
             return results
