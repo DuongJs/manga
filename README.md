@@ -30,6 +30,13 @@ A manga translation application that detects text bubbles, extracts text using O
 - **Text Rendering**: Automatically fits translated text into speech bubbles
 - **API Key Management**: Store and rotate multiple Gemini API keys automatically
 - **Custom Prompts**: Customize translation style and context for Gemini translations
+- **🆕 Batch Translation**: Translate multiple manga pages at once with optimized performance
+  - Upload multiple images simultaneously
+  - **Gemini Batch API**: Process all bubbles in 1 API call (3-4x faster!)
+  - Real-time progress tracking
+  - Download all results as ZIP
+  - Comprehensive statistics
+  - See [BATCH_TRANSLATE_GUIDE.md](BATCH_TRANSLATE_GUIDE.md) for details
 
 ## PaddleOCR Integration
 
