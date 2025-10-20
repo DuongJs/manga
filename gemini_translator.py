@@ -103,7 +103,24 @@ class GeminiTranslator:
                     timeout=self.timeout
                 )
                 response.raise_for_status()
-                return response.json()
+                result = response.json()
+                
+                # Validate response structure
+                if not isinstance(result, dict):
+                    raise ValueError("Invalid API response format: response is not a dictionary")
+                
+                if 'candidates' not in result:
+                    # Check for error in response
+                    if 'error' in result:
+                        error_info = result['error']
+                        error_msg = error_info.get('message', str(error_info))
+                        raise ValueError(f"Gemini API Error: {error_msg}")
+                    raise ValueError("Invalid API response: missing 'candidates' field")
+                
+                if not result['candidates']:
+                    raise ValueError("Invalid API response: empty candidates list")
+                
+                return result
                 
             except requests.exceptions.Timeout:
                 last_exception = ValueError(f"Request timeout after {self.timeout}s")
@@ -129,7 +146,7 @@ class GeminiTranslator:
                                 raise ValueError(error_msg)
                     except ValueError:
                         raise
-                    except:
+                    except Exception:
                         error_msg = f"Gemini API Error: {e.response.text}"
                 
                 last_exception = ValueError(error_msg)
@@ -150,6 +167,9 @@ class GeminiTranslator:
                     print(f"Network error, retrying in {wait_time}s... (attempt {attempt + 1}/{self.max_retries})")
                     time.sleep(wait_time)
                     continue
+            except ValueError as e:
+                # Don't retry on validation errors
+                raise e
         
         # If we've exhausted all retries, raise the last exception
         if last_exception:
@@ -321,11 +341,14 @@ class GeminiTranslator:
         # Convert all images to base64
         images_base64 = [self._image_to_base64(img) for img in images]
         
+        # Use a more unique separator that's unlikely to appear in translations
+        separator = "###TRANSLATION_SEPARATOR###"
+        
         # Create the prompt for batch OCR and translation
         system_instruction = (
             f"You are an expert manga translator. For each manga panel image provided, "
             f"extract all Japanese text and translate it to {target}. "
-            f"Return the translations separated by '|||' in the same order as the images. "
+            f"Return the translations separated by '{separator}' in the same order as the images. "
             f"Only return the translated text without any explanations."
         )
         
@@ -334,7 +357,7 @@ class GeminiTranslator:
         
         prompt = (
             f"Extract all Japanese text from these {len(images)} manga panels and translate each to {target}. "
-            f"Return each translation separated by '|||' (three pipe characters) in the same order. "
+            f"Return each translation separated by '{separator}' in the same order. "
             f"Do not include any additional explanation or formatting."
         )
         
@@ -384,7 +407,7 @@ class GeminiTranslator:
                             translated_text = translated_text.decode('utf-8', errors='replace')
                         
                         # Split by separator
-                        translations = [t.strip() for t in translated_text.split('|||')]
+                        translations = [t.strip() for t in translated_text.split(separator)]
                         print(f"  Split into {len(translations)} translations for {len(images)} images")
                         
                         # Validate we got reasonable results
